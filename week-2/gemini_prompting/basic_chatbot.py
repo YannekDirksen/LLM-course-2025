@@ -2,19 +2,39 @@ from fasthtml.common import *
 import google.generativeai as genai
 import strip_markdown
 import configparser
+from dotenv import load_dotenv
+import os
+from pathlib import Path
 
-API_KEY = os.environ.get("GEMINI_API_KEY")
+
+
+load_dotenv()
+API_KEY = os.environ.get("helsinki")
 genai.configure(api_key=API_KEY)
 LLM = "gemini-2.5-flash"
 model = genai.GenerativeModel(LLM)
 
-# Read system prompts from config file
+# --- Read system prompts from config file safely ---
+from pathlib import Path
+
 prompts = configparser.ConfigParser()
-prompts.read('prompts.env')
+
+# Get the absolute path of prompts.env (same folder as this script)
+cfg_path = Path(__file__).resolve().parent / "prompts.env"
+
+# Try to read it and show a helpful message if not found
+read_files = prompts.read(cfg_path)
+if not read_files:
+    raise FileNotFoundError(f"⚠️ Could not find prompts.env at: {cfg_path}")
+
+# Load values safely with fallbacks
+topic = prompts.get("TEMPLATES", "TOPIC", fallback="the provided text")
+number = prompts.get("TEMPLATES", "NUMBER", fallback="5")
 
 # Set system prompt
-#system_prompt = prompts.get("SYSTEM_PROMPTS", "IT_HELPDESK")
-system_prompt = f'Summarize the following text about {prompts.get("TEMPLATES", "TOPIC")} in {prompts.get("TEMPLATES", "NUMBER")} bullet points:'
+# system_prompt = prompts.get("SYSTEM_PROMPTS", "IT_HELPDESK")
+system_prompt = f"Summarize the following text about {topic} in {number} bullet points:"
+
 
 # Set up the app, including daisyui and tailwind for the chat component
 hdrs = (picolink, Script(src="https://cdn.tailwindcss.com"),
