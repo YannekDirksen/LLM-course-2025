@@ -24,7 +24,7 @@ if not get_from_session(st, SESSION_VARS.LOADED_MODELS):
     nlp.add_pipe("sentencizer")
     put_to_session(st, SESSION_VARS.NLP, nlp)
 
-    embedding_model_cpu = SentenceTransformer(model_name_or_path="models/models--sentence-transformers--all-mpnet-base-v2/snapshots/84f2bcc00d77236f9e89c8a360a00fb1139bf47d",
+    embedding_model_cpu = SentenceTransformer(model_name_or_path="/Users/dmitrykan/.cache/huggingface/hub/models--sentence-transformers--all-mpnet-base-v2/snapshots/e8c3b32edf5434bc2275fc9bab85f82640a19130",
                                           device="cpu") # choose the device to load the model to (note: GPU will often be *much* faster than CPU)
     put_to_session(st, SESSION_VARS.EMBEDDING_MODEL_CPU, embedding_model_cpu)
 

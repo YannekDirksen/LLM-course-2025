@@ -5,7 +5,7 @@ There are two main building blocks that you will work with:
 1. [Jupyter notebook](00_simple_local_rag.ipynb)
 2. [Streamlit UI](pdf_rag_ui.py), which implements the same functionality in a form of an interactive UI
 
-This notebook and code were tested with Python 3.12
+This notebook and code were tested with Python 3.13.
 
 # Week's tasks
 You are expected to submit one task (if you like, by all means do and submit more!) from the list below.
@@ -38,8 +38,9 @@ pip install stqdm
 pip install tqdm
 pip install -U sentence-transformers
 pip install PyMuPDF
+pip install spacy
 ```
-# Streamlit UI setup
+# PDF RAG Streamlit UI setup
 Download models from Hugging Face:
 ```
 huggingface-cli download sentence-transformers/all-mpnet-base-v2
@@ -51,9 +52,15 @@ Download spacy's English model:
 python -m spacy download en_core_web_sm
 ```
 
+# How to start it
+```
+# run it from week-5, you should also be using the venv or the Python that has all required dependencies from above
+cd week-5
+streamlit run pdf_rag_ui.py
+```
+
 # PDF RAG UI
-The PDF RAG Demo is a UI application, implemented using streamlit. The core code of RAG is otherwise the same as in the
-jupyter notebook.
+The PDF RAG Demo is a UI application, implemented using streamlit. The core code of RAG is otherwise the same as in the jupyter notebook. This code uses Gemma model, that runs locally on your PC directly from code.
 
 Here is how the UI looks like during the Preprocessing phase, triggered by uploading a pdf file.
 ![PDF RAG Demo](img/pdf_rag_ui_preprocessing.png)
@@ -67,3 +74,52 @@ grounding is done using the original RAG paper: "Retrieval-Augmented Generation 
 
 Comparing these two outputs, we can see that RAG-enhanced LLM produces a much more nuanced answer about 
 the key contributions of the paper, while vanilla LLM talks about more generic concepts.
+
+# PDF RAG UI: Ollama version
+This year (2025) I have additionally implemented a new version of the PDF RAG UI.
+Here are the improvements with detailed explanations:
+
+### 1. **Ollama Integration**
+- Replaced local model loading with Ollama API calls
+- Demonstrates using external LLM services instead of loading models in memory
+- Shows how to configure and validate model availability
+- Reduces memory usage and startup time
+
+### 2. **Chunking Strategy Improvements**
+- **Overlapping windows**: 5 sentences per chunk with 2-sentence overlap to preserve context across boundaries
+- **Section header detection**: Identifies numbered sections (e.g., "15.2.1") and creates focused chunks starting from headers
+- **Multiple chunk sizes**: Generates both short (header + 1-2 sentences) and medium (header + 3-5 sentences) chunks
+- Addresses the chunking trade-off: balancing specificity vs. context preservation
+- Implemented as a configurable option to compare strategies
+
+### 3. **Hybrid Search Implementation**
+- Combines dense vector search (semantic similarity) with sparse keyword matching
+- **Keyword boosting**: Increases scores for chunks containing query terms
+- **Definition pattern detection**: Identifies chunks with definitional language ("commonly referred to", "workflow of using", etc.)
+- **Score fusion**: Adds keyword and pattern-based boosts to vector similarity scores
+- Demonstrates hybrid retrieval combining multiple signals
+
+### 4. **Retrieval Precision Enhancements**
+- Increased result count: default from 5 to 10 (configurable)
+- **Score boosting**: Different boost weights for query matches, definitions, and numbered sections
+- Shows how to tune retrieval for definitional queries
+- Illustrates the impact of result set size on downstream generation
+
+### 5. **Generation Parameter Configuration**
+- **Token limit**: Increased from 256 to 512, configurable up to 2048
+- **Truncation detection**: Identifies incomplete responses (mid-sentence, incomplete lists)
+- **Temperature setting**: Set to 0.7 for balanced generation
+- Demonstrates the relationship between token limits and answer completeness
+
+### 6. **Implementation Details**
+- Modular design: chunking, retrieval, and generation are separate components
+- Configurable parameters: allows experimentation with different settings
+- Error handling: validation and user feedback
+- Code organization: reusable utility functions
+
+### Learning Outcomes
+- **Chunking strategies**: Overlapping windows and semantic-aware chunking
+- **Hybrid retrieval**: Combining vector and keyword search
+- **Score boosting**: Using multiple signals to improve ranking
+- **Generation parameters**: Token limits and their impact on output
+- **RAG pipeline**: End-to-end implementation from document processing to answer generation

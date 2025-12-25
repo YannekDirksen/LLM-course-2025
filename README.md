@@ -7,7 +7,7 @@
 **Target group:** Master's students\
 **Teachers:** 
 * Aarne Talman, AMD, [aarne.talman@helsinki.fi](mailto:aarne.talman@helsinki.fi)
-* Dmitry Kan, TomTom, [dmitry.kan@helsinki.fi](mailto:dmitry.kan@helsinki.fi)
+* Dmitry Kan, Aiven, [dmitry.kan@helsinki.fi](mailto:dmitry.kan@helsinki.fi)
 * Jussi Karlgren, AMD, [jussi.karlgren@helsinki.fi](mailto:jussi.karlgren@helsinki.fi)
 
 **Prerequisites:** 

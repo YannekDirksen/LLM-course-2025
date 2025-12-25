@@ -1,5 +1,4 @@
 from llmsherpa.readers import LayoutPDFReader
-from IPython.core.display import display, HTML
 from llama_index.llms.ollama import Ollama
 from llama_index.core import VectorStoreIndex
 from llama_index.core import Document, ServiceContext, Settings
@@ -21,7 +20,7 @@ from llama_index.core import Settings
 llm = Ollama(model="llama3", request_timeout=60.0)
 
 llmsherpa_api_url = "http://localhost:5010/api/parseDocument?renderFormat=all"
-pdf_url = "https://abc.xyz/assets/91/b3/3f9213d14ce3ae27e1038e01a0e0/2024q1-alphabet-earnings-release-pdf.pdf"
+pdf_url = "https://s206.q4cdn.com/479360582/files/doc_financials/2024/q1/2024q1-alphabet-earnings-release-pdf.pdf"
 pdf_reader = LayoutPDFReader(llmsherpa_api_url)
 
 # Read PDF

@@ -1,1 +1,1 @@
-# Group project presentations
+# Course Recap and Final Project
