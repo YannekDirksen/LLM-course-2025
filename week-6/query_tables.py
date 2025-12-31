@@ -1,46 +1,113 @@
 from llmsherpa.readers import LayoutPDFReader
 from llama_index.llms.ollama import Ollama
-from llama_index.core import VectorStoreIndex
-from llama_index.core import Document, ServiceContext, Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.core import Settings
 
-# Source: https://medium.com/@jitsins/query-complex-pdfs-in-natural-language-with-llmsherpa-ollama-llama3-8b-13b4782243de
-# To install:
-# 1. run https://stackoverflow.com/questions/52805115/certificate-verify-failed-unable-to-get-local-issuer-certificate
-# 2. install and run ollama:
-# ollama pull llama3
-# ollama run llama3
-# 3. Install docker and run:
-# docker pull ghcr.io/nlmatics/nlm-ingestor:latest
-# docker run -p 5010:5001 ghcr.io/nlmatics/nlm-ingestor:latest
-# This will expose the api link “http://localhost:5010/api/parseDocument?renderFormat=all” for you to utilize in your code.
+# -----------------------------
+# Configuration
+# -----------------------------
 
-# Initialize LLm
 llm = Ollama(model="llama3", request_timeout=60.0)
 
 llmsherpa_api_url = "http://localhost:5010/api/parseDocument?renderFormat=all"
-pdf_url = "https://s206.q4cdn.com/479360582/files/doc_financials/2024/q1/2024q1-alphabet-earnings-release-pdf.pdf"
-pdf_reader = LayoutPDFReader(llmsherpa_api_url)
+pdf_url = (
+    "https://s206.q4cdn.com/479360582/files/doc_financials/2024/q1/"
+    "2024q1-alphabet-earnings-release-pdf.pdf"
+)
 
-# Read PDF
+# -----------------------------
+# Read PDF via llmsherpa (Docker)
+# -----------------------------
+
+pdf_reader = LayoutPDFReader(llmsherpa_api_url)
 doc = pdf_reader.read_pdf(pdf_url)
 
-# Get data from the Section by Title
-selected_section = None
+# -----------------------------
+# Task 1a:
+# Load ALL sections that contain tables
+# -----------------------------
+
+table_sections = []
 for section in doc.sections():
-    if 'Q1 2024 Financial Highlights' in section.title:
-        selected_section = section
-        break
+    html = section.to_html(include_children=True, recurse=True)
+    if "<table" in html.lower():
+        table_sections.append(section)
 
-# Convert the output in HTML format
-context = selected_section.to_html(include_children=True, recurse=True)
-question = "What was Google's operating margin for 2024"
-resp = llm.complete(
-    f"read this table and answer question: {question}:\n{context}")
-print(resp.text)
+print(f"Found {len(table_sections)} sections containing tables.")
 
-question = "What % Net income is of the Revenues?"
-resp = llm.complete(
-    f"read this table and answer question: {question}:\n{context}")
-print(resp.text)
+# -----------------------------
+# Helper functions
+# -----------------------------
+
+def score_section(section, question: str) -> int:
+    """
+    Very simple keyword-based relevance scoring.
+    This avoids hard-coding section titles while
+    still picking the most relevant table.
+    """
+    q = question.lower()
+    title = (section.title or "").lower()
+    html = section.to_html(include_children=True, recurse=True).lower()
+
+    keywords = [
+        "revenue", "revenues",
+        "operating", "operating income",
+        "margin",
+        "net income",
+        "cost", "expenses"
+    ]
+
+    score = 0
+    for kw in keywords:
+        if kw in q and kw in title:
+            score += 5
+        if kw in q and kw in html:
+            score += 1
+
+    return score
+
+
+def pick_best_table_section(sections, question: str):
+    scored = [(score_section(s, question), s) for s in sections]
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return scored[0][1]
+
+
+def ask(question: str):
+    """
+    Ask a natural-language question over the most
+    relevant table section.
+    """
+    best_section = pick_best_table_section(table_sections, question)
+    context = best_section.to_html(include_children=True, recurse=True)
+
+    prompt = (
+        "You are given ONE HTML table extracted from a PDF.\n"
+        "Answer ONLY the question using ONLY this table.\n"
+        "If a calculation is required, show the formula and the exact numbers used.\n"
+        "If the table does not contain the needed values, say 'Not found in this table'.\n\n"
+        f"QUESTION: {question}\n\n"
+        f"TABLE:\n{context}"
+    )
+
+    response = llm.complete(prompt)
+
+    print("\n" + "=" * 80)
+    print("QUESTION:", question)
+    print("SECTION TITLE:", best_section.title)
+    print(response.text)
+
+
+# -----------------------------
+# Task 1b:
+# Test reasoning with table data
+# -----------------------------
+
+ask(
+    "What was Google's operating margin for Q1 2024? "
+    "If the margin is not directly stated, compute it as "
+    "operating income divided by revenues."
+)
+
+ask(
+    "What percentage of revenues is net income in Q1 2024? "
+    "Show the calculation."
+)
